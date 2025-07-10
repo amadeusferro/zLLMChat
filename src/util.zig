@@ -4,18 +4,20 @@ const stdout = Std.io.getStdOut().writer();
 const stdin = Std.io.getStdIn().reader();
 
 const Messages = @import("messages.zig").Messages;
-const handleErrors = @import("error_handler.zig").handleErrors;
+const ErrorHandler = @import("error_handler.zig").ErrorHandler;
 
 pub const Util = struct {
 
     threadlocal var globalBuffer: [16384]u8 = [_]u8{0} ** 16384;
 
+    const error_handler = ErrorHandler.init();
+
     pub fn display(message: []const u8) void {
-        stdout.writeAll(message) catch handleErrors(UtilError.StringDisplayingFailed);
+        stdout.writeAll(message) catch error_handler.handleErrors(UtilError.StringDisplayingFailed);
     }
 
     pub fn displayNumber(comptime T: type, number: T) void {
-        stdout.print("{}", .{number}) catch handleErrors(UtilError.NumberDisplayingFailed);
+        stdout.print("{}", .{number}) catch error_handler.handleErrors(UtilError.NumberDisplayingFailed);
     }
 
     pub fn readString(allocator: Allocator) ?[]const u8 {

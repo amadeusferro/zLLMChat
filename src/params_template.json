@@ -1,0 +1,171 @@
+{
+  "model_path": "models/Meta-Llama-3-8B-Instruct.Q2_K.gguf",
+  "model_name": "Llama 3",
+
+  "model_params": {
+    "gpu_layer_count": 999,
+    "main_gpu_index": 0,
+    "tensor_split_mode": 1,
+    "tensor_split_ratios": null,
+    "vocab_only_mode": false,
+    "memory_map_enabled": true,
+    "memory_lock_enabled": false,
+    "tensor_validation_enabled": false
+  },
+
+  "context_params": {
+    "context_size": 2048,
+    "batch_size": 2048,
+    "unified_batch_size": 512,
+    "max_sequence_length": 1,
+    "thread_count": 4,
+    "batch_thread_count": 4,
+    "pooling_type": -1,
+    "attention_type": -1,
+    "rope_scaling_type": -1,
+    "rope_frequency_base": 0.0,
+    "rope_frequency_scale": 0.0,
+    "yarn_extension_factor": -1.0,
+    "yarn_attention_factor": 1.0,
+    "yarn_beta_fast": 32.0,
+    "yarn_beta_slow": 1.0,
+    "yarn_original_context": 0,
+    "defrag_threshold": -1.0,
+    "key_type": 1,
+    "value_type": 1,
+    "all_logits_enabled": false,
+    "embeddings_enabled": false,
+    "offload_kqv_enabled": true,
+    "flash_attention_enabled": false,
+    "no_performance_optimizations": false
+  },
+
+  "sampling_params": [
+
+    
+    {
+      "type": "MinP",
+      "params": {
+        "p": 0.05,
+        "min_keep": 1
+      }
+    },
+
+    {
+      "type": "Temperature",
+      "params": {
+        "temp": 0.8
+      }
+    },
+
+    {
+      "type": "Distribution",
+      "params": {
+        "seed": 4294967295
+      }
+    },
+
+    {
+      "type": "GreedyDecoding",
+      "params": {}
+    },
+
+    {
+      "type": "TopK",
+      "params": {
+        "k": 40
+      }
+    },
+
+    {
+      "type": "TopP",
+      "params": {
+        "p": 0.85,
+        "min_keep": 10
+      }
+    },
+
+    {
+      "type": "Typical",
+      "params": {
+        "p": 0.95,
+        "min_keep": 10
+      }
+    },
+
+    {
+      "type": "TemperatureAdvanced",
+      "params": {
+        "temp": 0.8,
+        "delta": 0.2,
+        "exponent": 1.5
+      }
+    },
+
+    {
+      "type": "ExtremelyTypicalControlled",
+      "params": {
+        "p": 0.9,
+        "temp": 0.7,
+        "min_keep": 5,
+        "seed": 42
+      }
+    },
+
+    {
+      "type": "StandardDeviation",
+      "params": {
+        "width": 1.5
+      }
+    },
+
+    {
+      "type": "Mirostat",
+      "params": {
+        "seed": 42,
+        "target_surprise": 4.0,
+        "learning_rate": 0.2,
+        "window_size": 100
+      }
+    },
+
+    {
+      "type": "SimplifiedMirostat",
+      "params": {
+        "seed": 42,
+        "target_surprise": 4.0,
+        "learning_rate": 0.2
+      }
+    },
+
+    {
+      "type": "Penalties",
+      "params": {
+        "penalty_last_window": 54,
+        "penalty_repeat": 1.1,
+        "penalty_frequency": 0.95,
+        "penality_present": 1.05
+      }
+    },
+
+    {
+      "type": "InfillMode",
+      "params": {}
+    },
+
+    {
+      "type": "Dry",
+      "params": {
+        "train_context_size": 2048,
+        "multiplier": 1.32,
+        "base": 0.1,
+        "allowed_length": 50,
+        "penality_last_window": 64,
+        "breakers": ["###", "\n"],
+        "num_breakers": 2
+      }
+    }
+
+
+  ]
+}

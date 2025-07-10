@@ -34,7 +34,7 @@ pub const LLAMA = struct {
             .n_gpu_layers = @as(i32, @intCast(params.model_params.gpu_layer_count)),
             .main_gpu = @as(i32, @intCast(params.model_params.main_gpu_index)),
             .split_mode = @as(c_uint, @intCast(@intFromEnum(params.model_params.tensor_split_mode))),
-            .tensor_split = params.model_params.tensor_split_ratios,
+            .tensor_split = if(params.model_params.tensor_split_ratios == null) null else params.model_params.tensor_split_ratios.?.ptr,
             .vocab_only = params.model_params.vocab_only_mode,
             .use_mmap = params.model_params.memory_map_enabled,
             .use_mlock = params.model_params.memory_lock_enabled,
@@ -92,33 +92,22 @@ pub const LLAMA = struct {
             return LLAMAError.ContextCreationFailed;
         };
 
+        const sampler_dispatch_table = initSamplerDispatchTable();
+
         const sampler = llama.llama_sampler_chain_init(llama.llama_sampler_chain_default_params());
 
-        for(params.sampling_params.items) |sampler_param| {
-            addToChain(sampler, sampler_param);
+        if(params.sampling_params.items.len == 0) {
+            // Default Samplers
+            const initializer = sampler_dispatch_table.get("Default") orelse unreachable;
+            initializer.handle(sampler, null, null);
+        } else {
+            for(params.sampling_params.items) |sampler_param| {
+                const initializer = sampler_dispatch_table.get(@tagName(sampler_param.param_type)) orelse unreachable;
+                initializer.handle(sampler, sampler_param, vocab);
+            }
         }
 
-        llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_min_p(0.05, 1));
-        llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_temp(0.8));
-        llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_dist(llama.LLAMA_DEFAULT_SEED));
-
-        // llama.llama_sampler_init_greedy()
-        // llama.llama_sampler_init_top_k(k: i32)
-        // llama.llama_sampler_init_top_p(p: f32, min_keep: usize)
-        // llama.llama_sampler_init_typical(p: f32, min_keep: usize)
-        // llama.llama_sampler_init_temp_ext(t: f32, delta: f32, exponent: f32)
-        // llama.llama_sampler_init_xtc(p: f32, t: f32, min_keep: usize, seed: u32)
-        // llama.llama_sampler_init_top_n_sigma(n: f32)
-        // llama.llama_sampler_init_mirostat(n_vocab: i32, seed: u32, tau: f32, eta: f32, m: i32)
-        // llama.llama_sampler_init_mirostat_v2(seed: u32, tau: f32, eta: f32)
-        // llama.llama_sampler_init_grammar(vocab: ?*const struct_llama_vocab, grammar_str: [*c]const u8, grammar_root: [*c]const u8)
-        // llama.llama_sampler_init_grammar_lazy_patterns(vocab: ?*const struct_llama_vocab, grammar_str: [*c]const u8, grammar_root: [*c]const u8, trigger_patterns: [*c][*c]const u8, num_trigger_patterns: usize, trigger_tokens: [*c]const llama_token, num_trigger_tokens: usize)
-        // llama.llama_sampler_init_penalties(penalty_last_n: i32, penalty_repeat: f32, penalty_freq: f32, penalty_present: f32)
-        // llama.llama_sampler_init_dry(vocab: ?*const struct_llama_vocab, n_ctx_train: i32, dry_multiplier: f32, dry_base: f32, dry_allowed_length: i32, dry_penalty_last_n: i32, seq_breakers: [*c][*c]const u8, num_breakers: usize)
-        // llama.llama_sampler_init_logit_bias(n_vocab: i32, n_logit_bias: i32, logit_bias: [*c]const llama_logit_bias)
-        // llama.llama_sampler_init_infill(vocab: ?*const struct_llama_vocab)
-
-        return .{
+        return . {
             .params = params,
             .allocator = allocator,
             .messages = Std.ArrayList(ChatMessage).init(allocator),
@@ -275,14 +264,178 @@ pub const LLAMA = struct {
         return response;
     }
 
-    fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: Sampler) void {
-        const param = sampler_param.getParams(sampler_param.param_type);
-        
-        switch (sampler_param.param_type) {
-            SamplingTypes.MinP => llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_min_p(param.p, param.min_keep)),
-            SamplingTypes.Temperature => llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_temp(param.temp)),
-            SamplingTypes.Distribution => llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_dist(param.seed)),
-        }
+    const SamplerHandler = struct {
+        handle: *const fn([*c]llama.struct_llama_sampler, ?Sampler, ?*const llama.struct_llama_vocab) void,
+    };
+
+    fn initSamplerDispatchTable() Std.StaticStringMap(SamplerHandler) {
+        // TODO: Add all samplers
+        //llama.llama_sampler_init_logit_bias(n_vocab: i32, n_logit_bias: i32, logit_bias: [*c]const struct_llama_logit_bias)
+        //llama.llama_sampler_init_grammar(vocab: ?*const struct_llama_vocab, grammar_str: [*c]const u8, grammar_root: [*c]const u8)
+        //llama.llama_sampler_init_grammar_lazy_patterns(vocab: ?*const struct_llama_vocab, grammar_str: [*c]const u8, grammar_root: [*c]const u8, trigger_patterns: [*c][*c]const u8, num_trigger_patterns: usize, trigger_tokens: [*c]const llama_token, num_trigger_tokens: usize)
+        return Std.StaticStringMap(SamplerHandler).initComptime(
+            . {
+                . {
+                    "MinP", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.MinP);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_min_p(param.p, param.min_keep));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "Temperature", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.Temperature);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_temp(param.temp));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "Distribution", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.Distribution);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_dist(param.seed));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "GreedyDecoding", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, _: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_greedy());
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "TopK", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.TopK);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_top_k(param.k));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "TopP", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.TopP);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_top_p(param.p, param.min_keep));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "Typical", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.Typical);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_typical(param.p, param.min_keep));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "TemperatureAdvanced", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.TemperatureAdvanced);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_temp_ext(param.temp, param.delta, param.exponent));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "ExtremelyTypicalControlled", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.ExtremelyTypicalControlled);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_xtc(param.p, param.temp, param.min_keep, param.seed));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "StandardDeviation", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.StandardDeviation);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_top_n_sigma(param.width));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "Mirostat", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, vocab: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.Mirostat);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_mirostat(llama.llama_vocab_n_tokens(vocab.?), param.seed, param.target_surprise, param.learning_rate, param.window_size));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "SimplifiedMirostat", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.SimplifiedMirostat);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_mirostat_v2(param.seed, param.target_surprise, param.learning_rate));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "Penalties", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.Penalties);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_penalties(param.penalty_last_window, param.penalty_repeat, param.penalty_frequency, param.penality_present));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "InfillMode", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, _: ?Sampler, vocab: ?*const llama.struct_llama_vocab) void {
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_infill(vocab.?));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "Dry", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, sampler_param: ?Sampler, vocab: ?*const llama.struct_llama_vocab) void {
+                                const param = sampler_param.?.getParams(SamplingTypes.Dry);
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_dry(vocab.?, param.train_context_size, param.multiplier, param.base, param.allowed_length, param.penality_last_window, param.breakers.ptr, param.num_breakers));
+                            }
+                        }.addToChain
+                    }
+                },
+                . {
+                    "Default", SamplerHandler {
+                        .handle = struct {
+                            fn addToChain(sampler: [*c]llama.struct_llama_sampler, _: ?Sampler, _: ?*const llama.struct_llama_vocab) void {
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_min_p(0.05, 1));
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_temp(0.8));
+                                llama.llama_sampler_chain_add(sampler, llama.llama_sampler_init_dist(llama.LLAMA_DEFAULT_SEED));
+                            }
+                        }.addToChain
+                    }
+                }
+            }
+        );
     }
 };
 

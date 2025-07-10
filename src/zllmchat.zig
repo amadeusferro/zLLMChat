@@ -23,6 +23,10 @@ pub const zLLMChat = struct {
         return Params.init(allocator);
     }
 
+    pub fn assemblyParamsFromJson(allocator: Allocator, comptime path: []const u8) ParamsError!Params {
+        return Params.initFromJson(allocator, path);
+    }
+
     pub fn deinitParams(allocator: Allocator, params: Params) void {
         allocator.free(params.model_path);
         allocator.free(params.model_name);
@@ -66,14 +70,16 @@ pub const zLLMChat = struct {
 
         while (true) {
             var prompt: ?[]const u8 = null;
+            Util.display(Messages.cursor_yellow);
+            try self.addToHistory(Messages.cursor);
+            prompt = Util.readString(self.allocator);
             while(prompt == null) {
-                Util.display(Messages.cursor_yellow);
-                try self.addToHistory(Messages.cursor);
+                Util.display(Messages.ansii_clear_2line ++ Messages.cursor_yellow);
                 prompt = Util.readString(self.allocator);
-                Util.display(Messages.breakrow);
-                try self.addToHistory(prompt.?);
-                try self.addToHistory(Messages.breakrow ++ Messages.breakrow);
             }
+            Util.display(Messages.breakrow);
+            try self.addToHistory(prompt.?);
+            try self.addToHistory(Messages.breakrow ++ Messages.breakrow);
             defer self.allocator.free(prompt.?);
 
             var is_command = false;
