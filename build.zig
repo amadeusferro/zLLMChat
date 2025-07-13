@@ -4,12 +4,23 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const params_from_json = b.option(
+        bool, 
+        "PARAMS_FROM_JSON",
+        "Set to True to config/load parameters from params.json"
+    ) orelse false;
+
+    const opts = b.addOptions();
+    opts.addOption(bool, "params_from_json", params_from_json);
+
     const exe = b.addExecutable(.{
         .name = "zLLMChat",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    exe.root_module.addImport("build_options", opts.createModule());
 
     const llama_sources = &.{
         "llama.cpp/src/llama-adapter.cpp",
