@@ -14,7 +14,7 @@ git checkout 1d36b3670b285e69e58b9d687c770a2a0a192194
 cmake .. \
   -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
   -DBUILD_SHARED_LIBS=ON \
-  -DLLAMA_STATIC=ON \
+  -DLLAMA_STATIC=OFF \
   -DGGML_CUDA=ON \
   -DLLAMA_FLASH_ATTN=ON || { echo "Failed to configure CMake"; exit 1; }
 

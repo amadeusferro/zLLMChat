@@ -520,19 +520,17 @@ pub const Params = struct {
     fn getModelPath(allocator: Allocator) ParamsError![]const u8 {
         const string = consumeString(allocator, Messages.params_model_path, Messages.ansii_underlined, Messages.ansii_clear_1line);
         defer allocator.free(string);
-        const model_path = string;
-
-        if (!Std.mem.endsWith(u8, model_path, ".gguf")) {
-            allocator.free(model_path);
+        
+        if (!Std.mem.endsWith(u8, string, ".gguf")) {
             return ParamsError.InvalidModelFormat;
         }
 
-        const file = Std.fs.cwd().openFile(model_path, .{}) catch {
-            allocator.free(model_path);
+        const file = Std.fs.cwd().openFile(string, .{}) catch {
             return ParamsError.FileReadFailed;
         }; 
         defer file.close();
 
+        const model_path = allocator.dupe(u8, string) catch return ParamsError.AllocationFailed;
         return model_path;
     }
 
