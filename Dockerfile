@@ -40,8 +40,8 @@ WORKDIR /zLLMChat
 COPY build_with_cuda.sh ./
 COPY build_without_cuda.sh ./
 
-#RUN chmod +x build_without_cuda.sh && ./build_without_cuda.sh
-RUN chmod +x build_with_cuda.sh && ./build_with_cuda.sh
+#RUN mkdir models && chmod +x build_without_cuda.sh && ./build_without_cuda.sh
+RUN mkdir models && chmod +x build_with_cuda.sh && ./build_with_cuda.sh
 
 COPY src/ ./src/
 COPY build.zig ./
