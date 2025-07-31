@@ -95,6 +95,7 @@ sudo apt-get update && sudo apt-get install -y \
 
 > 
 **Note:** Of course, you also need [Zig ](https://ziglang.org/) to run it.
+
 **Note:** For GPU acceleration, you also need the [NVIDIA CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit).
 
 **1. Clone the repository**
@@ -136,6 +137,36 @@ Then, **run it**:
 https://github.com/user-attachments/assets/6b04414b-ba90-48a8-9a44-9f0c16e36547
 
 -----
+
+## 📥 Downloading GGUF Models
+
+In order to chat with any model using **zLLMChat**, you need to download a `.gguf` file — a format designed for efficient, portable execution of large language models.
+
+### ❓ What is GGUF?
+
+**GGUF (GPT-Generated Unified Format)** is a next-generation file format created by the [llama.cpp](https://github.com/ggerganov/llama.cpp) team. It offers:
+
+* ✅ Compatibility across many inference tools
+* 🧠 Embedded metadata for easier configuration
+* 🚀 Optimized support for quantization and GPU acceleration
+
+zLLMChat uses GGUF to load and run language models with maximum efficiency.
+
+### 📌 Recommended Models
+
+You can find thousands of open-source models hosted on [Hugging Face](https://huggingface.co), many of which are available in the GGUF format.
+
+Here are some popular, high-quality options tested with zLLMChat:
+
+| Model Name | Download Link |
+|------------|---------------|
+| Meta-Llama-3-8B-Instruct.Q2_K.gguf | [Download](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct) |
+| mistral-7b-instruct-v0.1.Q3_K_S.gguf | [Download](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF) |
+| zephyr-7b-beta.Q2_K.gguf | [Download](https://huggingface.co/TheBloke/zephyr-7B-beta-GGUF) |
+| Qwen3-0.6B-Q4_K_M.gguf | [Download](https://huggingface.co/Qwen/Qwen3-0.6B) |
+| Qwen3-14B-Q4_K_M.gguf | [Download](https://huggingface.co/Qwen/Qwen3-14B-GGUF) |
+
+---
 
 ## ⚙️ Advanced Configuration  
 
