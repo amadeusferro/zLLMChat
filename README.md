@@ -63,8 +63,8 @@ Then, **run it**:
 ./zig-out/bin/zLLMChat
 ```
 
-![Build With Docker](./assets/Build%20with%20Docker.mp4)
-ENT: no such file or directory, open '/home/lord-amadeus/Área de trabalho/zLLMChat/assets/Build%20with%20Docker.mp4'
+https://github.com/user-attachments/assets/333ab716-94a5-4ff1-a7ca-145bc37a1ecc
+
 ---
 
 ### 💻 Method 2: Build from Source
@@ -133,7 +133,7 @@ Then, **run it**:
 ./zig-out/bin/zLLMChat
 ```
 
-![Build From Source](assets/Build%20from%20Source.mp4)
+https://github.com/user-attachments/assets/6b04414b-ba90-48a8-9a44-9f0c16e36547
 
 -----
 
